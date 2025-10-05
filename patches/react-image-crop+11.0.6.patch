@@ -1,0 +1,20 @@
+diff --git a/node_modules/react-image-crop/dist/ReactCrop.mjs b/node_modules/react-image-crop/dist/ReactCrop.mjs
+index 804e672..78c1a63 100644
+--- a/node_modules/react-image-crop/dist/ReactCrop.mjs
++++ b/node_modules/react-image-crop/dist/ReactCrop.mjs
+@@ -1,4 +1,4 @@
+-import React, { useRef, useEffect, useReducer, forwardRef, useImperativeHandle } from 'react';
++import React, { useRef, useEffect, useReducer, forwardRef, useImperativeHandle } from 'react';'use client'
+ 
+ function getCrop(el, crop, unit) {
+   if (unit === "px") {
+diff --git a/node_modules/react-image-crop/src/ReactCrop.tsx b/node_modules/react-image-crop/src/ReactCrop.tsx
+index 4557102..5ab8e77 100644
+--- a/node_modules/react-image-crop/src/ReactCrop.tsx
++++ b/node_modules/react-image-crop/src/ReactCrop.tsx
+@@ -1,3 +1,5 @@
++'use client'
++
+ import React, {
+   useRef,
+   useEffect,
