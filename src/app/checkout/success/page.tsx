@@ -19,7 +19,7 @@ export default function CheckoutSuccessPage() {
   const [verificationState, setVerificationState] = useState<PaymentVerificationState>({
     status: 'loading'
   });
-  const { clearCart } = useCart();
+  const {clearCart} = useCart();
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -62,7 +62,7 @@ export default function CheckoutSuccessPage() {
         localStorage.removeItem('order_id');
 
         const paymentStatus = order.paymentStatus === 'paid' ? 'verified' : 'pending';
-        
+
         setVerificationState({
           status: paymentStatus,
           orderData: order

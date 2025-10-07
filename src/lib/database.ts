@@ -15,6 +15,7 @@ export type Product = {
     shippingCost?: number;
     images: string[];
     stock: number;
+    category: string;
 };
 
 export type Customer = {
@@ -100,7 +101,8 @@ export async function getProducts(): Promise<Product[]> {
             // Convert the object of products into an array
             return Object.keys(productsObject).map(key => ({
                 ...productsObject[key],
-                id: key
+                id: key,
+                category: productsObject[key].category || 'uncategorized' // Handle legacy products without category
             }));
         } else {
             console.log("No products data available, returning empty array.");
@@ -121,9 +123,11 @@ export async function getProductById(id: string): Promise<Product | null> {
     try {
         const snapshot = await get(child(dbRef, `products/${id}`));
         if (snapshot.exists()) {
+            const productData = snapshot.val();
             return {
-                ...snapshot.val(),
+                ...productData,
                 id: id,
+                category: productData.category || 'uncategorized' // Handle legacy products without category
             };
         } else {
             return null;
@@ -198,7 +202,8 @@ export async function addProduct(productData: Omit<Product, 'id' | 'slug'>): Pro
 
         const newProduct: Omit<Product, 'id'> = {
             ...productData,
-            slug: slug
+            slug: slug,
+            category: productData.category || 'uncategorized'
         };
 
         await set(newProductRef, newProduct);
@@ -220,7 +225,8 @@ export async function updateProduct(productId: string, productData: Omit<Product
 
         const updatedProduct: Omit<Product, 'id'> = {
             ...productData,
-            slug: slug
+            slug: slug,
+            category: productData.category || 'uncategorized'
         };
 
         await update(productRef, updatedProduct);

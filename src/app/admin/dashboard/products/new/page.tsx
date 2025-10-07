@@ -1,27 +1,27 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import {useState, useCallback} from "react";
+import {useRouter} from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Loader2, Upload, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
+import {ChevronLeft, Loader2, Upload, Trash2, ArrowLeft, ArrowRight} from "lucide-react";
 import Image from "next/image";
 
-import { Button } from "@/components/ui/button";
+import {Button} from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
-import { addProduct, type Product } from "@/lib/database";
-import { Badge } from "@/components/ui/badge";
+import {Label} from "@/components/ui/label";
+import {Input} from "@/components/ui/input";
+import {Textarea} from "@/components/ui/textarea";
+import {Switch} from "@/components/ui/switch";
+import {useToast} from "@/hooks/use-toast";
+import {addProduct, type Product} from "@/lib/database";
+import {Badge} from "@/components/ui/badge";
 
 declare global {
     interface Window {
@@ -31,9 +31,9 @@ declare global {
 
 export default function NewProductPage() {
     const router = useRouter();
-    const { toast } = useToast();
+    const {toast} = useToast();
     const [loading, setLoading] = useState(false);
-    
+
     // State for form fields
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -42,9 +42,10 @@ export default function NewProductPage() {
     const [shippingCost, setShippingCost] = useState("");
     const [stock, setStock] = useState("");
     const [promoEligible, setPromoEligible] = useState(false);
+    const [category, setCategory] = useState("");
 
     const [images, setImages] = useState<string[]>([]);
-    
+
     const openUploadWidget = useCallback(() => {
         if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
             toast({
@@ -81,7 +82,7 @@ export default function NewProductPage() {
             const newImages = [...prev];
             const [movedImage] = newImages.splice(index, 1);
             const newIndex = direction === 'left' ? index - 1 : index + 1;
-            
+
             if (newIndex >= 0 && newIndex <= newImages.length) {
                 newImages.splice(newIndex, 0, movedImage);
             } else {
@@ -94,11 +95,11 @@ export default function NewProductPage() {
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!name || !description || !price || !stock) {
+        if (!name || !description || !price || !stock || !category) {
             toast({
                 variant: "destructive",
                 title: "Missing Information",
-                description: "Please fill out all required fields.",
+                description: "Please fill out all required fields including category.",
             });
             return;
         }
@@ -114,13 +115,14 @@ export default function NewProductPage() {
 
         setLoading(true);
         try {
-            const productData: Omit<Product, 'id' | 'slug'> & { discountPrice?: number, shippingCost?: number } = {
+            const productData: Omit<Product, 'id' | 'slug'> & {discountPrice?: number, shippingCost?: number} = {
                 name,
                 description,
                 price: parseFloat(price),
                 stock: parseInt(stock, 10),
                 images: images,
                 promoEligible,
+                category,
             };
 
             const parsedDiscountPrice = parseFloat(discountPrice);
@@ -134,7 +136,7 @@ export default function NewProductPage() {
             }
 
             await addProduct(productData);
-            
+
             toast({
                 title: "Product Created",
                 description: `"${name}" has been successfully added.`,
@@ -195,6 +197,16 @@ export default function NewProductPage() {
                                         placeholder="Describe the sculpture..."
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Category</Label>
+                                    <Input
+                                        id="category"
+                                        placeholder="e.g., Abstract, Animals, Garden Sculptures..."
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -293,7 +305,7 @@ export default function NewProductPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4">
-                                     {images.length > 0 && (
+                                    {images.length > 0 && (
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                             {images.map((image, index) => (
                                                 image && (

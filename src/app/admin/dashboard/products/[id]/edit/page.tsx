@@ -49,6 +49,7 @@ export default function EditProductPage() {
     const [shippingCost, setShippingCost] = useState("");
     const [stock, setStock] = useState("");
     const [promoEligible, setPromoEligible] = useState(false);
+    const [category, setCategory] = useState("");
 
     useEffect(() => {
         if (!productId) return;
@@ -65,6 +66,7 @@ export default function EditProductPage() {
                     setShippingCost(product.shippingCost?.toString() || "");
                     setStock(product.stock.toString());
                     setPromoEligible(product.promoEligible || false);
+                    setCategory(product.category || "");
                     const existingImages: UploadedImage[] = product.images.map(url => ({
                         file: new File([], ""), // Dummy file
                         preview: url,
@@ -98,11 +100,11 @@ export default function EditProductPage() {
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!name || !description || !price || !stock) {
+        if (!name || !description || !price || !stock || !category) {
             toast({
                 variant: "destructive",
                 title: "Missing Information",
-                description: "Please fill out all required fields.",
+                description: "Please fill out all required fields including category.",
             });
             return;
         }
@@ -146,6 +148,7 @@ export default function EditProductPage() {
                 stock: parseInt(stock, 10),
                 images: imageUrls,
                 promoEligible,
+                category,
             };
 
             const parsedDiscountPrice = parseFloat(discountPrice);
@@ -233,6 +236,16 @@ export default function EditProductPage() {
                                         placeholder="Describe the sculpture..."
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Category</Label>
+                                    <Input
+                                        id="category"
+                                        placeholder="e.g., Abstract, Animals, Garden Sculptures..."
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
                                         required
                                     />
                                 </div>

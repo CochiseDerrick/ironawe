@@ -1,18 +1,18 @@
 
 "use client"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import {useState} from "react";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Label} from "@/components/ui/label";
+import {Textarea} from "@/components/ui/textarea";
+import {useToast} from "@/hooks/use-toast";
+import {Loader2} from "lucide-react";
 import emailjs from '@emailjs/browser';
 
 export function ContactForm() {
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const {toast} = useToast();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -20,7 +20,7 @@ export function ContactForm() {
 
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
-    
+
     const templateParams = {
       from_name: formData.get('name') as string,
       from_email: formData.get('email') as string,

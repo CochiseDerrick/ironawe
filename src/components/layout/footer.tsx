@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Flame } from "lucide-react"
+import {Flame} from "lucide-react"
 
 export default function Footer() {
   const year = new Date().getFullYear()
@@ -16,6 +16,7 @@ export default function Footer() {
             <Link href="/about" className="text-sm hover:text-primary">About</Link>
             <Link href="/contact" className="text-sm hover:text-primary">Contact</Link>
             <Link href="/admin" className="text-sm hover:text-primary">Admin</Link>
+            <Link href="https://dorsetcreative.online" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-primary">Web Design</Link>
           </nav>
           <p className="text-sm text-muted-foreground">
             © {year} IronAwe. All rights reserved.
