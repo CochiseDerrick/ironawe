@@ -1,44 +1,44 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import {useState, useEffect} from "react";
+import {useRouter, useParams} from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Loader2, Upload, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
+import {ChevronLeft, Loader2, Upload, Trash2, ArrowLeft, ArrowRight} from "lucide-react";
 import Image from "next/image";
 
-import { Button } from "@/components/ui/button";
+import {Button} from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
-import { getProductById, updateProduct, type Product } from "@/lib/database";
-import { Badge } from "@/components/ui/badge";
-import { useImageUpload, type UploadedImage } from "@/hooks/use-image-upload";
-import { uploadImage } from "@/actions/upload-image";
-import { Skeleton } from "@/components/ui/skeleton";
+import {Label} from "@/components/ui/label";
+import {Input} from "@/components/ui/input";
+import {Textarea} from "@/components/ui/textarea";
+import {Switch} from "@/components/ui/switch";
+import {useToast} from "@/hooks/use-toast";
+import {getProductById, updateProduct, type Product} from "@/lib/database";
+import {Badge} from "@/components/ui/badge";
+import {useImageUpload, type UploadedImage} from "@/hooks/use-image-upload";
+import {uploadImage} from "@/actions/upload-image";
+import {Skeleton} from "@/components/ui/skeleton";
 
 export default function EditProductPage() {
     const router = useRouter();
     const params = useParams();
     const productId = params.id as string;
-    
-    const { toast } = useToast();
+
+    const {toast} = useToast();
     const [loading, setLoading] = useState(false);
     const [loadingProduct, setLoadingProduct] = useState(true);
-    const { 
-        images, 
-        setImages, 
-        handleFileChange, 
-        handleRemoveImage, 
+    const {
+        images,
+        setImages,
+        handleFileChange,
+        handleRemoveImage,
         handleReorderImage,
     } = useImageUpload();
 
@@ -68,12 +68,12 @@ export default function EditProductPage() {
                     const existingImages: UploadedImage[] = product.images.map(url => ({
                         file: new File([], ""), // Dummy file
                         preview: url,
-                        isUploaded: true, 
+                        isUploaded: true,
                     }));
                     setImages(existingImages);
 
                 } else {
-                     toast({
+                    toast({
                         variant: "destructive",
                         title: "Product not found",
                         description: "The product you are trying to edit does not exist.",
@@ -81,7 +81,7 @@ export default function EditProductPage() {
                     router.push('/admin/dashboard/products');
                 }
             } catch (error) {
-                 toast({
+                toast({
                     variant: "destructive",
                     title: "Error fetching product",
                     description: "Could not load product details. Please try again.",
@@ -120,7 +120,7 @@ export default function EditProductPage() {
         try {
             const uploadPromises = images.map(image => {
                 if (image.isUploaded) {
-                    return Promise.resolve({ success: true, url: image.preview });
+                    return Promise.resolve({success: true, url: image.preview});
                 }
                 const formData = new FormData();
                 formData.append('file', image.file);
@@ -134,11 +134,12 @@ export default function EditProductPage() {
                 if (result.success && result.url) {
                     imageUrls.push(result.url);
                 } else {
-                    throw new Error(result.error || "An unknown error occurred during image upload.");
+                    const errorMessage = 'error' in result ? result.error : "An unknown error occurred during image upload.";
+                    throw new Error(errorMessage || "An unknown error occurred during image upload.");
                 }
             }
-            
-            const productData: Omit<Product, 'id' | 'slug'> & { discountPrice?: number, shippingCost?: number } = {
+
+            const productData: Omit<Product, 'id' | 'slug'> & {discountPrice?: number, shippingCost?: number} = {
                 name,
                 description,
                 price: parseFloat(price),
@@ -151,14 +152,14 @@ export default function EditProductPage() {
             if (!isNaN(parsedDiscountPrice) && parsedDiscountPrice > 0) {
                 productData.discountPrice = parsedDiscountPrice;
             }
-            
+
             const parsedShippingCost = parseFloat(shippingCost);
             if (!isNaN(parsedShippingCost) && parsedShippingCost >= 0) {
                 productData.shippingCost = parsedShippingCost;
             }
 
             await updateProduct(productId, productData);
-            
+
             toast({
                 title: "Product Updated",
                 description: `"${name}" has been successfully updated.`,
@@ -177,7 +178,7 @@ export default function EditProductPage() {
             setLoading(false);
         }
     };
-    
+
     if (loadingProduct) {
         return <EditProductPageSkeleton />;
     }
@@ -206,7 +207,7 @@ export default function EditProductPage() {
                     </div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-3 md:gap-8 mt-4">
-                     <div className="grid auto-rows-max items-start gap-4 lg:gap-8 md:col-span-2">
+                    <div className="grid auto-rows-max items-start gap-4 lg:gap-8 md:col-span-2">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Product Details</CardTitle>
@@ -217,20 +218,20 @@ export default function EditProductPage() {
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Product Name</Label>
-                                    <Input 
-                                        id="name" 
-                                        placeholder="e.g., Molten Core Guardian" 
-                                        value={name} 
+                                    <Input
+                                        id="name"
+                                        placeholder="e.g., Molten Core Guardian"
+                                        value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        required 
+                                        required
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="description">Description</Label>
-                                    <Textarea 
-                                        id="description" 
-                                        placeholder="Describe the sculpture..." 
-                                        value={description} 
+                                    <Textarea
+                                        id="description"
+                                        placeholder="Describe the sculpture..."
+                                        value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                         required
                                     />
@@ -244,24 +245,24 @@ export default function EditProductPage() {
                                 <CardTitle>Pricing & Inventory</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                 <div className="space-y-2">
+                                <div className="space-y-2">
                                     <Label htmlFor="price">Price</Label>
-                                    <Input 
-                                        id="price" 
-                                        type="number" 
-                                        placeholder="1250.00" 
+                                    <Input
+                                        id="price"
+                                        type="number"
+                                        placeholder="1250.00"
                                         value={price}
                                         onChange={(e) => setPrice(e.target.value)}
                                         required
                                         aria-label="Price in pounds"
                                     />
-                                 </div>
+                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="discountPrice">Discount Price (Optional)</Label>
-                                    <Input 
-                                        id="discountPrice" 
-                                        type="number" 
-                                        placeholder="1100.00" 
+                                    <Input
+                                        id="discountPrice"
+                                        type="number"
+                                        placeholder="1100.00"
                                         value={discountPrice}
                                         onChange={(e) => setDiscountPrice(e.target.value)}
                                         aria-label="Discount price in pounds"
@@ -269,10 +270,10 @@ export default function EditProductPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="shippingCost">Shipping & Handling</Label>
-                                    <Input 
-                                        id="shippingCost" 
-                                        type="number" 
-                                        placeholder="250.00" 
+                                    <Input
+                                        id="shippingCost"
+                                        type="number"
+                                        placeholder="250.00"
                                         value={shippingCost}
                                         onChange={(e) => setShippingCost(e.target.value)}
                                         aria-label="Shipping cost in pounds"
@@ -280,10 +281,10 @@ export default function EditProductPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="stock">Stock Quantity</Label>
-                                    <Input 
-                                        id="stock" 
-                                        type="number" 
-                                        placeholder="1" 
+                                    <Input
+                                        id="stock"
+                                        type="number"
+                                        placeholder="1"
                                         value={stock}
                                         onChange={(e) => setStock(e.target.value)}
                                         required
@@ -300,10 +301,10 @@ export default function EditProductPage() {
                                 <div className="flex flex-row items-center justify-between rounded-lg border p-4">
                                     <div className="space-y-0.5">
                                         <Label htmlFor="promo-switch" className="text-base">
-                                        Enable Promo Codes
+                                            Enable Promo Codes
                                         </Label>
                                         <p id="promo-description" className="text-sm text-muted-foreground">
-                                        Allow promo codes to be used for this product.
+                                            Allow promo codes to be used for this product.
                                         </p>
                                     </div>
                                     <Switch
@@ -411,7 +412,7 @@ export default function EditProductPage() {
                         </Card>
                     </div>
                 </div>
-                 <div className="flex items-center justify-center gap-2 md:hidden mt-4">
+                <div className="flex items-center justify-center gap-2 md:hidden mt-4">
                     <Button variant="outline" size="sm" type="button" onClick={() => router.back()}>
                         Cancel
                     </Button>
@@ -456,7 +457,7 @@ const EditProductPageSkeleton = () => (
                 </Card>
             </div>
             <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
-                 <Card>
+                <Card>
                     <CardHeader>
                         <Skeleton className="h-7 w-1/2" />
                     </CardHeader>
@@ -465,30 +466,30 @@ const EditProductPageSkeleton = () => (
                             <Skeleton className="h-4 w-16" />
                             <Skeleton className="h-10 w-full" />
                         </div>
-                         <div className="space-y-2">
+                        <div className="space-y-2">
                             <Skeleton className="h-4 w-32" />
                             <Skeleton className="h-10 w-full" />
                         </div>
-                         <div className="space-y-2">
+                        <div className="space-y-2">
                             <Skeleton className="h-4 w-32" />
                             <Skeleton className="h-10 w-full" />
                         </div>
                     </CardContent>
                 </Card>
-                 <Card>
+                <Card>
                     <CardHeader>
                         <Skeleton className="h-7 w-1/2" />
                     </CardHeader>
                     <CardContent>
-                       <Skeleton className="h-20 w-full" />
+                        <Skeleton className="h-20 w-full" />
                     </CardContent>
                 </Card>
             </div>
-             <div className="md:col-span-3">
+            <div className="md:col-span-3">
                 <Card>
                     <CardHeader>
-                         <Skeleton className="h-7 w-1/4" />
-                         <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-7 w-1/4" />
+                        <Skeleton className="h-4 w-3/4" />
                     </CardHeader>
                     <CardContent>
                         <Skeleton className="h-24 w-full" />
@@ -499,4 +500,3 @@ const EditProductPageSkeleton = () => (
     </div>
 );
 
-    

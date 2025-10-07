@@ -1,14 +1,14 @@
 
-import type { Metadata } from 'next';
+import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
+import {Toaster} from "@/components/ui/toaster";
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
-import { FavoritesProvider } from '@/hooks/use-favorites';
-import { CartProvider } from '@/hooks/use-cart';
-import { ThemeProvider } from '@/components/theme-provider';
+import {FavoritesProvider} from '@/hooks/use-favorites';
+import {CartProvider} from '@/hooks/use-cart';
+import {ThemeProvider} from '@/components/theme-provider';
 import Script from 'next/script';
-import { getSettings } from '@/lib/database';
+import {getSettings} from '@/lib/database';
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   description: 'Hand-forged metal sculptures and custom welding services by Jade, a Dorset-based artist. Discover unique, hand-forged metal art. Each piece tells a story of fire, steel, and artistry.',
   keywords: ['metal sculpture', 'welding', 'custom fabrication', 'art', 'steel art', 'Jade', 'Dorset artist', 'IronAwe'],
-  authors: [{ name: 'Jade at IronAwe' }],
+  authors: [{name: 'Jade at IronAwe'}],
   openGraph: {
     title: 'IronAwe - Metal Sculptures & Welding by Jade',
     description: 'Discover hand-forged metal sculptures and custom welding services by Dorset-based artist, Jade.',
@@ -45,12 +45,12 @@ export const metadata: Metadata = {
 };
 
 const ALL_THEMES = [
-    'theme-forged', 
-    'theme-blueprint', 
-    'theme-welders-arc',
-    'theme-molten-core',
-    'theme-graphite',
-    'theme-oxidized',
+  'theme-forged',
+  'theme-blueprint',
+  'theme-welders-arc',
+  'theme-molten-core',
+  'theme-graphite',
+  'theme-oxidized',
 ];
 
 export default async function RootLayout({
@@ -60,7 +60,7 @@ export default async function RootLayout({
 }>) {
   const settings = await getSettings();
   const defaultTheme = settings?.defaultTheme || 'theme-forged';
-  
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>

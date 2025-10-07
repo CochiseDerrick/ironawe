@@ -1,21 +1,22 @@
 
 "use client";
 
-import { createContext, useContext } from 'react';
-import type { Product } from '@/lib/database';
+import {createContext, useContext} from 'react';
+import type {Product} from '@/lib/database';
 
 export interface CartItem extends Product {
   quantity: number;
 }
 
 export interface CartContextType {
-    cartItems: CartItem[];
-    addToCart: (product: Product) => void;
-    removeFromCart: (productId: string) => void;
-    updateQuantity: (productId: string, quantity: number) => void;
-    clearCart: () => void;
-    cartCount: number;
-    cartTotal: number;
+  cartItems: CartItem[];
+  addToCart: (product: Product) => void;
+  removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  cartCount: number;
+  cartTotal: number;
+  shippingTotal: number;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
