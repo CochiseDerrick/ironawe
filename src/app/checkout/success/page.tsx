@@ -7,6 +7,7 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
 import {CheckCircle, AlertCircle, Loader2} from "lucide-react";
 import {getOrderById, getOrderByStripeSessionId} from "@/lib/database";
+import {useCart} from "@/hooks/use-cart";
 
 interface PaymentVerificationState {
   status: 'loading' | 'verified' | 'pending' | 'failed';
@@ -18,6 +19,7 @@ export default function CheckoutSuccessPage() {
   const [verificationState, setVerificationState] = useState<PaymentVerificationState>({
     status: 'loading'
   });
+  const { clearCart } = useCart();
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -59,10 +61,18 @@ export default function CheckoutSuccessPage() {
         localStorage.removeItem('stripe_session_id');
         localStorage.removeItem('order_id');
 
+        const paymentStatus = order.paymentStatus === 'paid' ? 'verified' : 'pending';
+        
         setVerificationState({
-          status: order.paymentStatus === 'paid' ? 'verified' : 'pending',
+          status: paymentStatus,
           orderData: order
         });
+
+        // Clear the shopping cart after successful payment verification
+        if (paymentStatus === 'verified') {
+          clearCart();
+          console.log('Shopping cart cleared after successful payment');
+        }
 
       } catch (error) {
         console.error('Payment verification failed:', error);
