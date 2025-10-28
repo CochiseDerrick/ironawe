@@ -9,6 +9,9 @@ import {Badge} from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {ShoppingCart, CheckCircle, ZoomIn} from "lucide-react";
@@ -65,6 +68,10 @@ export default function ProductDetails({product}: ProductDetailsProps) {
               </div>
             </DialogTrigger>
             <DialogContent className="max-w-6xl w-full p-2">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>Enlarged product image</DialogTitle>
+                    <DialogDescription>A larger view of the selected product image for {product.name}.</DialogDescription>
+                </DialogHeader>
               <div className="relative flex items-center justify-center">
                 <Image
                   src={selectedImage}
