@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { Product } from "@/lib/database";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import FavoriteButton from "./favorite-button";
+import ShareButton from "./share-button";
 import { Badge } from "./ui/badge";
 
 interface ProductCardProps {
@@ -12,7 +13,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   return (
-    <Card className="overflow-hidden group transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+    <Card className="overflow-hidden group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col">
       <Link href={`/products/${product.slug}`} aria-label={`View details for ${product.name}`}>
         <div className="overflow-hidden">
           <Image
@@ -24,7 +25,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             unoptimized
           />
         </div>
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex-grow">
           <h3 className="text-lg font-headline font-bold truncate">{product.name}</h3>
           <p className="text-sm text-muted-foreground mt-1 h-10 overflow-hidden">{product.description}</p>
         </CardContent>
@@ -40,7 +41,10 @@ export default function ProductCard({ product }: ProductCardProps) {
             <span className="text-foreground" aria-label={`Price: £${product.price.toFixed(2)}`}>£{product.price.toFixed(2)}</span>
           )}
         </p>
-        <FavoriteButton productId={product.id} />
+        <div className="flex items-center">
+            <ShareButton product={product} />
+            <FavoriteButton productId={product.id} />
+        </div>
       </CardFooter>
     </Card>
   );

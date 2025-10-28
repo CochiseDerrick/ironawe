@@ -4,6 +4,7 @@
 import Image from "next/image";
 import {Button} from "@/components/ui/button";
 import FavoriteButton from "@/components/favorite-button";
+import ShareButton from "@/components/share-button";
 import {Badge} from "@/components/ui/badge";
 import {
   Dialog,
@@ -108,12 +109,16 @@ export default function ProductDetails({product}: ProductDetailsProps) {
 
       <section aria-labelledby="product-details" className="space-y-6">
         <div className="space-y-2">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
             <h1 id="product-details" className="text-3xl md:text-4xl font-bold font-headline text-primary">{product.name}</h1>
-            <Badge variant={isOutOfStock ? "destructive" : "outline"} aria-live="polite">
+            <div className="flex items-center flex-shrink-0">
+                <ShareButton product={product} />
+                <FavoriteButton productId={product.id} />
+            </div>
+          </div>
+           <Badge variant={isOutOfStock ? "destructive" : "outline"} aria-live="polite">
               {isOutOfStock ? "Out of Stock" : "In Stock"}
             </Badge>
-          </div>
           <p>{product.description}</p>
         </div>
 
@@ -139,7 +144,6 @@ export default function ProductDetails({product}: ProductDetailsProps) {
             <ShoppingCart className="mr-2 h-5 w-5" aria-hidden="true" />
             {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
           </Button>
-          <FavoriteButton productId={product.id} />
         </div>
       </section>
     </div>
