@@ -18,20 +18,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const productUrl = `${siteUrl}/products/${product.slug}`;
+  const imageUrl = product.images[0];
+
   return {
     title: product.name,
     description: product.description,
     openGraph: {
       title: product.name,
       description: product.description,
+      url: productUrl,
+      siteName: 'IronAwe',
       images: [
         {
-          url: product.images[0],
-          width: 800,
-          height: 800,
+          url: imageUrl,
+          width: 1200,
+          height: 630,
           alt: product.name,
         },
       ],
+      locale: 'en_GB',
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      description: product.description,
+      images: [imageUrl],
     },
   }
 }
@@ -46,3 +60,4 @@ export default async function ProductPage({ params }: Props) {
 
   return <ProductDetails product={product} />;
 }
+

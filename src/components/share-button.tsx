@@ -20,35 +20,17 @@ interface ShareButtonProps {
 export default function ShareButton({ product }: ShareButtonProps) {
   const { toast } = useToast();
   const [productUrl, setProductUrl] = useState("");
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    // This ensures window.location.origin is only accessed on the client-side
-    const url = `${window.location.origin}/products/${product.slug}`;
-    setProductUrl(url);
-  }, [product.slug]);
-
-  const handleShare = async () => {
-    if (!productUrl) return;
-
-    const shareData = {
-      title: product.name,
-      text: `Check out this amazing sculpture: ${product.name}`,
-      url: productUrl,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (error) {
-        console.error("Error using Web Share API:", error);
-        // Fallback to copy link if user cancels or there's an error
-        copyToClipboard();
-      }
-    } else {
-        // Fallback for desktop browsers
-        copyToClipboard();
+    // This effect runs only on the client, ensuring window is available.
+    setProductUrl(`${window.location.origin}/products/${product.slug}`);
+    // Check if the browser supports the native Web Share API.
+    // If not, we'll show the copy-link popover on desktop.
+    if (typeof navigator.share === 'undefined') {
+        setIsDesktop(true);
     }
-  };
+  }, [product.slug]);
 
   const copyToClipboard = () => {
     if (!productUrl) return;
@@ -68,8 +50,26 @@ export default function ShareButton({ product }: ShareButtonProps) {
     });
   }
 
-  // Use Popover for desktop to show the link, and direct share on mobile
-  if (typeof window !== 'undefined' && !navigator.share) {
+  const handleShare = async () => {
+    if (!productUrl) return;
+
+    const shareData = {
+      title: product.name,
+      text: `Check out this amazing sculpture from IronAwe: ${product.name}`,
+      url: productUrl,
+    };
+
+    try {
+        await navigator.share(shareData);
+    } catch (error) {
+        console.error("Error using Web Share API:", error);
+        // This fallback is mostly for when a user cancels the share dialog.
+        // The main copy-to-clipboard logic is handled by the Popover for desktop.
+    }
+  };
+
+  // On desktop (or browsers without navigator.share), show a Popover with a copy button.
+  if (isDesktop) {
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -103,6 +103,7 @@ export default function ShareButton({ product }: ShareButtonProps) {
     )
   }
 
+  // On mobile (or browsers with navigator.share), use the native share functionality.
   return (
     <Button
       variant="ghost"
@@ -117,3 +118,4 @@ export default function ShareButton({ product }: ShareButtonProps) {
     </Button>
   );
 }
+
