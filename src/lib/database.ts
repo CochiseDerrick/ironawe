@@ -50,8 +50,16 @@ export type Order = {
     };
 };
 
+export type Review = {
+    id: string;
+    author: string;
+    location: string;
+    text: string;
+};
+
 export type AppSettings = {
-    defaultTheme: string;
+    defaultTheme?: string;
+    categoryOrder?: string[];
 }
 
 export async function getSettings(): Promise<AppSettings | null> {
@@ -479,4 +487,74 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
         console.error(`Error updating status for order ${orderId}:`, error);
         throw error;
     }
+}
+
+// *** Reviews CRUD Functions ***
+
+export async function getReviews(): Promise<Review[]> {
+    if (!db) {
+        console.warn("Database not initialized. Returning empty review list.");
+        return [];
+    }
+    const dbRef = ref(db);
+    try {
+        const snapshot = await get(child(dbRef, 'reviews'));
+        if (snapshot.exists()) {
+            const reviewsObject = snapshot.val();
+            return Object.keys(reviewsObject).map(key => ({
+                ...reviewsObject[key],
+                id: key,
+            }));
+        } else {
+            return [];
+        }
+    } catch (error) {
+        console.error("Error fetching reviews:", error);
+        throw error;
+    }
+}
+
+export async function getReviewById(id: string): Promise<Review | null> {
+    if (!db) {
+        console.warn("Database not initialized. Cannot fetch review by ID.");
+        return null;
+    }
+    const dbRef = ref(db);
+    try {
+        const snapshot = await get(child(dbRef, `reviews/${id}`));
+        if (snapshot.exists()) {
+            return {
+                ...snapshot.val(),
+                id: id,
+            };
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error(`Error fetching review by ID ${id}:`, error);
+        throw error;
+    }
+}
+
+export async function addReview(reviewData: Omit<Review, 'id'>): Promise<string> {
+    if (!db) throw new Error("Database not initialized");
+    const reviewsRef = ref(db, 'reviews');
+    const newReviewRef = push(reviewsRef);
+    await set(newReviewRef, reviewData);
+    if (!newReviewRef.key) {
+        throw new Error("Failed to get key for new review");
+    }
+    return newReviewRef.key;
+}
+
+export async function updateReview(reviewId: string, reviewData: Omit<Review, 'id'>): Promise<void> {
+    if (!db) throw new Error("Database not initialized");
+    const reviewRef = ref(db, `reviews/${reviewId}`);
+    await update(reviewRef, reviewData);
+}
+
+export async function deleteReview(reviewId: string): Promise<void> {
+    if (!db) throw new Error("Database not initialized");
+    const reviewRef = ref(db, `reviews/${reviewId}`);
+    await remove(reviewRef);
 }

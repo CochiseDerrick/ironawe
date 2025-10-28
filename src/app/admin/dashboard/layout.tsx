@@ -12,6 +12,7 @@ import {
   Search,
   LogOut,
   Palette,
+  MessageSquare,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const navItems = [
     { href: "/admin/dashboard/orders", label: "Orders", icon: Package },
     { href: "/admin/dashboard/products", label: "Products", icon: Package },
     { href: "/admin/dashboard/customers", label: "Customers", icon: Users },
+    { href: "/admin/dashboard/reviews", label: "Reviews", icon: MessageSquare },
     { href: "/admin/dashboard/analytics", label: "Analytics", icon: LineChart },
     { href: "/admin/dashboard/appearance", label: "Appearance", icon: Palette },
 ];
