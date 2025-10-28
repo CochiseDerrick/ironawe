@@ -20,15 +20,14 @@ interface ShareButtonProps {
 export default function ShareButton({ product }: ShareButtonProps) {
   const { toast } = useToast();
   const [productUrl, setProductUrl] = useState("");
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isShareApiAvailable, setIsShareApiAvailable] = useState(false);
 
   useEffect(() => {
     // This effect runs only on the client, ensuring window is available.
     setProductUrl(`${window.location.origin}/products/${product.slug}`);
     // Check if the browser supports the native Web Share API.
-    // If not, we'll show the copy-link popover on desktop.
-    if (typeof navigator.share === 'undefined') {
-        setIsDesktop(true);
+    if (typeof navigator.share === 'function') {
+        setIsShareApiAvailable(true);
     }
   }, [product.slug]);
 
@@ -53,23 +52,35 @@ export default function ShareButton({ product }: ShareButtonProps) {
   const handleShare = async () => {
     if (!productUrl) return;
 
-    const shareData = {
-      title: product.name,
-      text: `Check out this amazing sculpture from IronAwe: ${product.name}`,
-      url: productUrl,
-    };
+    // Use Web Share API if available
+    if (isShareApiAvailable) {
+        const shareData = {
+          title: product.name,
+          text: `Check out this amazing sculpture from IronAwe: ${product.name}`,
+          url: productUrl,
+        };
 
-    try {
-        await navigator.share(shareData);
-    } catch (error) {
-        console.error("Error using Web Share API:", error);
-        // This fallback is mostly for when a user cancels the share dialog.
-        // The main copy-to-clipboard logic is handled by the Popover for desktop.
+        try {
+            await navigator.share(shareData);
+            return; // Exit if share is successful
+        } catch (error) {
+            // This error occurs if the user cancels the share, or if the API is blocked (e.g., non-HTTPS)
+            // We don't need to show an error for a user cancellation.
+            // If the error is NotAllowedError, we let it fall through to the popover logic below.
+            if (error instanceof DOMException && error.name === 'AbortError') {
+              return;
+            }
+            console.error("Error using Web Share API:", error);
+        }
     }
+    
+    // Fallback for desktop or when navigator.share fails: Copy link
+    copyToClipboard();
   };
-
-  // On desktop (or browsers without navigator.share), show a Popover with a copy button.
-  if (isDesktop) {
+  
+  // Always render the Popover for desktop users or as a fallback.
+  // The mobile share sheet will be triggered by `handleShare` if available.
+  if (!isShareApiAvailable) {
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -103,7 +114,7 @@ export default function ShareButton({ product }: ShareButtonProps) {
     )
   }
 
-  // On mobile (or browsers with navigator.share), use the native share functionality.
+  // On browsers with navigator.share, use the native share functionality.
   return (
     <Button
       variant="ghost"
@@ -118,4 +129,3 @@ export default function ShareButton({ product }: ShareButtonProps) {
     </Button>
   );
 }
-
