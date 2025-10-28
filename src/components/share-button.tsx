@@ -11,6 +11,7 @@ import {
     SheetContent,
     SheetHeader,
     SheetTitle,
+    SheetDescription,
     SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -53,6 +54,11 @@ export default function ShareButton({ product }: ShareButtonProps) {
     });
   }
 
+  const handleSocialShare = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setIsSheetOpen(false);
+  }
+
   const encodedUrl = encodeURIComponent(productUrl);
   const encodedTitle = encodeURIComponent(product.name);
   const encodedDescription = encodeURIComponent(product.description);
@@ -64,11 +70,6 @@ export default function ShareButton({ product }: ShareButtonProps) {
     { name: 'Pinterest', url: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&media=${encodedImage}&description=${encodedDescription}`, icon: PinterestIcon },
     { name: 'LinkedIn', url: `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedDescription}`, icon: Linkedin },
   ];
-
-  const handleSocialShare = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-    setIsSheetOpen(false);
-  }
 
   return (
     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -87,6 +88,9 @@ export default function ShareButton({ product }: ShareButtonProps) {
         <SheetContent side="left" className="w-[300px] sm:w-[400px]">
             <SheetHeader>
                 <SheetTitle>Share Sculpture</SheetTitle>
+                <SheetDescription>
+                    Share this sculpture on your favorite social media platform or copy the link.
+                </SheetDescription>
             </SheetHeader>
             <div className="py-4 space-y-3">
                 {socialLinks.map((link) => (
