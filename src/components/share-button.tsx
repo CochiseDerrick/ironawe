@@ -2,33 +2,36 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Share2, Copy } from "lucide-react";
+import { Share2, Copy, X as TwitterIcon, Facebook, Linkedin, Image as PinterestIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/database";
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { Input } from "./ui/input";
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface ShareButtonProps {
   product: Product;
 }
 
+interface SocialLink {
+    name: string;
+    url: string;
+    icon: React.ElementType;
+}
+
 export default function ShareButton({ product }: ShareButtonProps) {
   const { toast } = useToast();
   const [productUrl, setProductUrl] = useState("");
-  const [isShareApiAvailable, setIsShareApiAvailable] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   useEffect(() => {
     // This effect runs only on the client, ensuring window is available.
     setProductUrl(`${window.location.origin}/products/${product.slug}`);
-    // Check if the browser supports the native Web Share API.
-    if (typeof navigator.share === 'function') {
-        setIsShareApiAvailable(true);
-    }
   }, [product.slug]);
 
   const copyToClipboard = () => {
@@ -39,6 +42,7 @@ export default function ShareButton({ product }: ShareButtonProps) {
             title: "Link Copied!",
             description: "The product link has been copied to your clipboard.",
         });
+        setIsSheetOpen(false); // Close sheet on success
     }, (err) => {
         console.error("Failed to copy text: ", err);
         toast({
@@ -49,73 +53,63 @@ export default function ShareButton({ product }: ShareButtonProps) {
     });
   }
 
-  const handleNativeShare = async () => {
-    if (!productUrl) return;
+  const encodedUrl = encodeURIComponent(productUrl);
+  const encodedTitle = encodeURIComponent(product.name);
+  const encodedDescription = encodeURIComponent(product.description);
+  const encodedImage = encodeURIComponent(product.images[0]);
 
-    const shareData = {
-        title: product.name,
-        text: `Check out this amazing sculpture from IronAwe: ${product.name}`,
-        url: productUrl,
-    };
+  const socialLinks: SocialLink[] = [
+    { name: 'Facebook', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, icon: Facebook },
+    { name: 'Twitter', url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`, icon: TwitterIcon },
+    { name: 'Pinterest', url: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&media=${encodedImage}&description=${encodedDescription}`, icon: PinterestIcon },
+    { name: 'LinkedIn', url: `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}&summary=${encodedDescription}`, icon: Linkedin },
+  ];
 
-    try {
-        await navigator.share(shareData);
-    } catch (error) {
-        // This error can happen if the user cancels the share. We don't need to show an error for that.
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return;
-        }
-        console.error("Error using Web Share API:", error);
-    }
-  };
-  
-  // On mobile or browsers with navigator.share, use the native share functionality.
-  if (isShareApiAvailable) {
-      return (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleNativeShare}
-          className="rounded-full"
-          aria-label="Share this product"
-          disabled={!productUrl}
-        >
-          <Share2 className="h-5 w-5" />
-          <span className="sr-only">Share</span>
-        </Button>
-      );
+  const handleSocialShare = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setIsSheetOpen(false);
   }
 
-  // Fallback for desktop: render a Popover with a copy button.
   return (
-    <Popover>
-        <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Share this product">
-                <Share2 className="h-5 w-5" />
+    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              aria-label="Share this product"
+              disabled={!productUrl}
+            >
+              <Share2 className="h-5 w-5" />
+              <span className="sr-only">Share</span>
             </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-            <div className="grid gap-4">
-                <div className="space-y-2">
-                    <h4 className="font-medium leading-none">Share this Sculpture</h4>
-                    <p className="text-sm text-muted-foreground">
-                        Copy the link below to share.
-                    </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Input
-                        id="product-link"
-                        value={productUrl}
-                        readOnly
-                        className="h-9 flex-1"
-                    />
-                    <Button type="button" size="sm" className="px-3" onClick={copyToClipboard} disabled={!productUrl}>
-                        <span className="sr-only">Copy</span>
-                        <Copy className="h-4 w-4" />
+        </SheetTrigger>
+        <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+            <SheetHeader>
+                <SheetTitle>Share Sculpture</SheetTitle>
+            </SheetHeader>
+            <div className="py-4 space-y-3">
+                {socialLinks.map((link) => (
+                    <Button
+                        key={link.name}
+                        variant="outline"
+                        className="w-full justify-start gap-3"
+                        onClick={() => handleSocialShare(link.url)}
+                    >
+                        <link.icon className="h-5 w-5" />
+                        Share on {link.name}
                     </Button>
-                </div>
+                ))}
+                <Button
+                    variant="outline"
+                    className="w-full justify-start gap-3"
+                    onClick={copyToClipboard}
+                >
+                    <Copy className="h-5 w-5" />
+                    Copy Link
+                </Button>
             </div>
-        </PopoverContent>
-    </Popover>
+        </SheetContent>
+    </Sheet>
   );
 }
