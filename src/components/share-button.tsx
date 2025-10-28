@@ -49,83 +49,73 @@ export default function ShareButton({ product }: ShareButtonProps) {
     });
   }
 
-  const handleShare = async () => {
+  const handleNativeShare = async () => {
     if (!productUrl) return;
 
-    // Use Web Share API if available
-    if (isShareApiAvailable) {
-        const shareData = {
-          title: product.name,
-          text: `Check out this amazing sculpture from IronAwe: ${product.name}`,
-          url: productUrl,
-        };
+    const shareData = {
+        title: product.name,
+        text: `Check out this amazing sculpture from IronAwe: ${product.name}`,
+        url: productUrl,
+    };
 
-        try {
-            await navigator.share(shareData);
-            return; // Exit if share is successful
-        } catch (error) {
-            // This error occurs if the user cancels the share, or if the API is blocked (e.g., non-HTTPS)
-            // We don't need to show an error for a user cancellation.
-            // If the error is NotAllowedError, we let it fall through to the popover logic below.
-            if (error instanceof DOMException && error.name === 'AbortError') {
-              return;
-            }
-            console.error("Error using Web Share API:", error);
+    try {
+        await navigator.share(shareData);
+    } catch (error) {
+        // This error can happen if the user cancels the share. We don't need to show an error for that.
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
         }
+        console.error("Error using Web Share API:", error);
     }
-    
-    // Fallback for desktop or when navigator.share fails: Copy link
-    copyToClipboard();
   };
   
-  // Always render the Popover for desktop users or as a fallback.
-  // The mobile share sheet will be triggered by `handleShare` if available.
-  if (!isShareApiAvailable) {
-    return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full" aria-label="Share this product">
-                    <Share2 className="h-5 w-5" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-                <div className="grid gap-4">
-                    <div className="space-y-2">
-                        <h4 className="font-medium leading-none">Share this Sculpture</h4>
-                        <p className="text-sm text-muted-foreground">
-                            Copy the link below to share.
-                        </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Input
-                            id="product-link"
-                            value={productUrl}
-                            readOnly
-                            className="h-9 flex-1"
-                        />
-                        <Button type="button" size="sm" className="px-3" onClick={copyToClipboard} disabled={!productUrl}>
-                            <span className="sr-only">Copy</span>
-                            <Copy className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-            </PopoverContent>
-        </Popover>
-    )
+  // On mobile or browsers with navigator.share, use the native share functionality.
+  if (isShareApiAvailable) {
+      return (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleNativeShare}
+          className="rounded-full"
+          aria-label="Share this product"
+          disabled={!productUrl}
+        >
+          <Share2 className="h-5 w-5" />
+          <span className="sr-only">Share</span>
+        </Button>
+      );
   }
 
-  // On browsers with navigator.share, use the native share functionality.
+  // Fallback for desktop: render a Popover with a copy button.
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={handleShare}
-      className="rounded-full"
-      aria-label="Share this product"
-      disabled={!productUrl}
-    >
-      <Share2 className="h-5 w-5" />
-      <span className="sr-only">Share</span>
-    </Button>
+    <Popover>
+        <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Share this product">
+                <Share2 className="h-5 w-5" />
+            </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+            <div className="grid gap-4">
+                <div className="space-y-2">
+                    <h4 className="font-medium leading-none">Share this Sculpture</h4>
+                    <p className="text-sm text-muted-foreground">
+                        Copy the link below to share.
+                    </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Input
+                        id="product-link"
+                        value={productUrl}
+                        readOnly
+                        className="h-9 flex-1"
+                    />
+                    <Button type="button" size="sm" className="px-3" onClick={copyToClipboard} disabled={!productUrl}>
+                        <span className="sr-only">Copy</span>
+                        <Copy className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        </PopoverContent>
+    </Popover>
   );
 }
