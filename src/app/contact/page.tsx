@@ -5,11 +5,11 @@ import { Mail, Phone, MapPin } from "lucide-react";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contact Jade at IronAwe',
-  description: 'Get in touch with Jade at IronAwe for custom fabrication, welding repairs, or mobile welding services. Based in Poole, Dorset.',
+  title: 'Contact Jade White at IronAwe',
+  description: 'Get in touch with Jade White at IronAwe for custom fabrication, welding repairs, or mobile welding services. Based in Poole, Dorset.',
   openGraph: {
-    title: 'Contact Jade at IronAwe',
-    description: 'Have a question or a project in mind for Dorset-based artist Jade? We\'d love to hear from you.',
+    title: 'Contact Jade White at IronAwe',
+    description: 'Have a question or a project in mind for Dorset-based artist Jade White? We\'d love to hear from you.',
   },
 };
 

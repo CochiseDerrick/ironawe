@@ -17,15 +17,15 @@ const defaultUrl = process.env.VERCEL_URL
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: {
-    default: 'IronAwe - Metal Sculptures by Jade | Dorset Artist',
+    default: 'IronAwe - Metal Sculptures by Jade White | Dorset Artist',
     template: '%s | IronAwe',
   },
-  description: 'Hand-forged metal sculptures and custom welding services by Jade, a Dorset-based artist. Discover unique, hand-forged metal art. Each piece tells a story of fire, steel, and artistry.',
-  keywords: ['metal sculpture', 'welding', 'custom fabrication', 'art', 'steel art', 'Jade', 'Dorset artist', 'IronAwe'],
-  authors: [{name: 'Jade at IronAwe'}],
+  description: 'Hand-forged metal sculptures and custom welding services by Jade White, a Dorset-based artist. Discover unique, hand-forged metal art. Each piece tells a story of fire, steel, and artistry.',
+  keywords: ['metal sculpture', 'welding', 'custom fabrication', 'art', 'steel art', 'Jade White', 'Dorset artist', 'IronAwe'],
+  authors: [{name: 'Jade White at IronAwe'}],
   openGraph: {
-    title: 'IronAwe - Metal Sculptures & Welding by Jade',
-    description: 'Discover hand-forged metal sculptures and custom welding services by Dorset-based artist, Jade.',
+    title: 'IronAwe - Metal Sculptures & Welding by Jade White',
+    description: 'Discover hand-forged metal sculptures and custom welding services by Dorset-based artist, Jade White.',
     url: new URL(defaultUrl),
     siteName: 'IronAwe',
     locale: 'en_GB',
