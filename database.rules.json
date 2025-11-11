@@ -1,7 +1,5 @@
 {
   "rules": {
-    ".read": false,
-    ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
     "products": {
       ".read": true,
       ".indexOn": "slug"
@@ -13,16 +11,19 @@
       ".read": true
     },
     "customers": {
-      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
+      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
     },
     "orders": {
       ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
       ".indexOn": [
         "stripeSessionId"
       ]
     },
     "webhook_events": {
-      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
+      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
     }
   }
 }
