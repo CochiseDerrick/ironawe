@@ -153,9 +153,25 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
         return null;
     }
     try {
-        const products = await getProducts();
-        const product = products.find(p => p.slug === slug);
-        return product || null;
+        const productsRef = ref(db, 'products');
+        // Query the database for a product where the 'slug' child equals the provided slug
+        const q = query(productsRef, orderByChild('slug'), equalTo(slug));
+        const snapshot = await get(q);
+
+        if (snapshot.exists()) {
+            // The result is an object where keys are the product IDs
+            const productsData = snapshot.val();
+            const productId = Object.keys(productsData)[0]; // Get the first (and only) key
+            const productData = productsData[productId];
+            
+            return {
+                ...productData,
+                id: productId,
+                category: productData.category || 'uncategorized'
+            };
+        } else {
+            return null; // No product found with that slug
+        }
     } catch (error) {
         console.error(`Error fetching product by slug ${slug}:`, error);
         throw error;
