@@ -1,8 +1,8 @@
+
 {
   "rules": {
     "products": {
-      ".read": true,
-      ".indexOn": "slug"
+      ".read": true
     },
     "reviews": {
       ".read": true
