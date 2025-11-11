@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Metadata } from 'next';
+import placeholderImages from '@/app/lib/placeholder-images.json';
 
 export const metadata: Metadata = {
   title: 'About Jade White - The Artist Behind IronAwe',
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
     title: 'About Jade White at IronAwe',
     description: 'Forging passion into permanent art in the heart of Dorset.',
     images: [{
-      url: 'https://picsum.photos/seed/welder/1200/630',
+      url: placeholderImages.welder,
       width: 1200,
       height: 630,
       alt: 'Artist Jade White welding a metal sculpture in her Dorset workshop.',
@@ -48,7 +49,7 @@ export default function AboutPage() {
           </div>
           <div className="order-1 md:order-2">
             <Image
-              src="https://picsum.photos/seed/welder/800/1000"
+              src={placeholderImages.welder_portrait}
               alt="Artist Jade White at work in the IronAwe workshop in Dorset, sparks flying from a welding torch."
               width={800}
               height={1000}

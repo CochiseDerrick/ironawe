@@ -35,6 +35,7 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { isFirebaseConfigured } from "@/lib/firebase";
+import placeholderImages from '@/app/lib/placeholder-images.json';
 
 const navItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: Home },
@@ -183,7 +184,7 @@ function DashboardLayoutContent({
                   {user.photoURL ? (
                       <Image src={user.photoURL} width={40} height={40} className="rounded-full" alt="avatar" />
                   ) : (
-                      <Image src="https://picsum.photos/seed/avatar/40/40" width={40} height={40} className="rounded-full" alt="avatar" />
+                      <Image src={placeholderImages.avatar} width={40} height={40} className="rounded-full" alt="avatar" />
                   )}
                   <span className="sr-only">Toggle user menu</span>
                 </Button>
