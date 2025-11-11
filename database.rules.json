@@ -1,12 +1,10 @@
 {
   "rules": {
-    // Default to no read/write access at the root
     ".read": false,
     ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
-
-    // Publicly readable data
     "products": {
-      ".read": true
+      ".read": true,
+      ".indexOn": "slug"
     },
     "reviews": {
       ".read": true
@@ -14,13 +12,14 @@
     "settings": {
       ".read": true
     },
-
-    // Private data - read access is handled by server-side code with admin credentials
     "customers": {
       ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
     },
     "orders": {
-      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
+      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
+      ".indexOn": [
+        "stripeSessionId"
+      ]
     },
     "webhook_events": {
       ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
