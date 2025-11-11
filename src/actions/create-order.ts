@@ -17,9 +17,9 @@ export async function createOrder(args: CreateOrderArgs): Promise<{success: bool
     const {customer, items, total, shipping, stripeSessionId} = args;
 
     try {
-        // Step 1: Create or update the customer record.
+        // Step 1: Create or update the customer record. This function now just identifies the customer.
         const {customerId} = await addOrUpdateCustomer(customer);
-        console.log(`Customer record processed for: ${customerId}`);
+        console.log(`Customer record identified for: ${customerId}`);
 
         // Step 2: Create the order and link it to the customer.
         const orderData = {
@@ -32,7 +32,7 @@ export async function createOrder(args: CreateOrderArgs): Promise<{success: bool
             paymentStatus: 'pending' as const,
         };
 
-        // Step 3: This function now also updates the customer record with the order details.
+        // Step 3: This function now also creates or updates the customer record with the order details.
         const finalOrderId = await addOrder(orderData, customer);
         console.log(`Order ${finalOrderId} created and linked to customer ${customerId}`);
 
@@ -43,3 +43,5 @@ export async function createOrder(args: CreateOrderArgs): Promise<{success: bool
         return {success: false, error: errorMessage};
     }
 }
+
+    

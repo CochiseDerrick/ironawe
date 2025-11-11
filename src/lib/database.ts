@@ -267,21 +267,19 @@ export async function addOrUpdateCustomer(
 ): Promise<{customerId: string, isNewCustomer: boolean}> {
     if (!db) throw new Error("Database not initialized");
 
-    // Fetch all customers and find by email in the application code
-    const customers = await getCustomers();
-    const existingCustomer = customers.find(c => c.email === customerData.email);
+    const customersRef = ref(db, 'customers');
+    const q = query(customersRef, orderByChild('email'), equalTo(customerData.email));
 
-    if (existingCustomer) {
-        // Found an existing customer, return their ID
-        return {customerId: existingCustomer.id, isNewCustomer: false};
+    const snapshot = await get(q);
+
+    if (snapshot.exists()) {
+        const customerId = Object.keys(snapshot.val())[0];
+        return {customerId, isNewCustomer: false};
     } else {
-        // No existing customer, create a new one
-        const customersRef = ref(db, 'customers');
         const newCustomerRef = push(customersRef);
         if (!newCustomerRef.key) {
             throw new Error("Failed to generate a new customer key.");
         }
-
         // Return a key for a customer that doesn't exist yet. `addOrder` will create them.
         return {customerId: newCustomerRef.key, isNewCustomer: true};
     }
@@ -574,3 +572,5 @@ export async function deleteReview(reviewId: string): Promise<void> {
     const reviewRef = ref(db, `reviews/${reviewId}`);
     await remove(reviewRef);
 }
+
+    
