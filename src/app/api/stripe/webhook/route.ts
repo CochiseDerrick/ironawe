@@ -1,7 +1,7 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {headers} from 'next/headers';
 import Stripe from 'stripe';
-import {getOrderByStripeSessionId, updateOrderPaymentStatus} from '@/lib/database';
+import {getOrderByStripeSessionId, updateOrderPaymentStatus, fulfillOrderPayment} from '@/lib/database';
 import {updateOrderStatus} from '@/actions/update-order-status';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -78,8 +78,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         return;
     }
 
-    // Update payment status to paid
-    await updateOrderPaymentStatus(order.id, 'paid');
+    // Mark the order as paid and decrement stock for the purchased items. This is idempotent,
+    // so if `payment_intent.succeeded` also fires for this order, stock won't be double-decremented.
+    await fulfillOrderPayment(order.id);
 
     console.log(`Order ${order.id} payment confirmed via Stripe session ${session.id}`);
 }
@@ -87,9 +88,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     console.log('Payment intent succeeded:', paymentIntent.id);
 
-    // If we have order metadata, update the order
+    // If we have order metadata, fulfill the order (mark paid + decrement stock, idempotently).
     if (paymentIntent.metadata?.orderId) {
-        await updateOrderPaymentStatus(paymentIntent.metadata.orderId, 'paid');
+        await fulfillOrderPayment(paymentIntent.metadata.orderId);
         console.log(`Order ${paymentIntent.metadata.orderId} payment confirmed via payment intent ${paymentIntent.id}`);
     }
 }

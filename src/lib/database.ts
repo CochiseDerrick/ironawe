@@ -1,6 +1,6 @@
 
 import {db} from './firebase';
-import {ref, get, set, child, remove, push, update, query, orderByChild, equalTo} from 'firebase/database';
+import {ref, get, set, child, remove, push, update, query, orderByChild, equalTo, runTransaction} from 'firebase/database';
 import type {CheckoutFormValues} from '@/app/checkout/page';
 import type {CartItem} from '@/hooks/use-cart';
 
@@ -110,7 +110,8 @@ export async function getProducts(): Promise<Product[]> {
             return Object.keys(productsObject).map(key => ({
                 ...productsObject[key],
                 id: key,
-                category: productsObject[key].category || 'uncategorized' // Handle legacy products without category
+                category: productsObject[key].category || 'uncategorized', // Handle legacy products without category
+                stock: typeof productsObject[key].stock === 'number' ? productsObject[key].stock : 0 // Handle legacy products without stock
             }));
         } else {
             console.log("No products data available, returning empty array.");
@@ -135,7 +136,8 @@ export async function getProductById(id: string): Promise<Product | null> {
             return {
                 ...productData,
                 id: id,
-                category: productData.category || 'uncategorized' // Handle legacy products without category
+                category: productData.category || 'uncategorized', // Handle legacy products without category
+                stock: typeof productData.stock === 'number' ? productData.stock : 0 // Handle legacy products without stock
             };
         } else {
             return null;
@@ -174,6 +176,50 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
         console.error("Error fetching products by IDs:", error);
         throw error;
     }
+}
+
+export type StockIssue = {
+    productId: string;
+    name: string;
+    requested: number;
+    available: number;
+};
+
+/**
+ * Authoritative, live stock check. Given a list of { id, quantity } requests (e.g. a
+ * customer's cart), fetches the *current* stock for those products directly from the
+ * database and returns any items where the requested quantity exceeds what's actually
+ * available (including items that no longer exist or are sold out, i.e. available <= 0).
+ *
+ * An empty array means every requested item is fully available. This should always be
+ * re-checked server-side (e.g. in the createOrder action) immediately before creating an
+ * order, since client-side cart state can be stale or tampered with.
+ */
+export async function checkStockAvailability(
+    items: {id: string; quantity: number}[]
+): Promise<StockIssue[]> {
+    if (items.length === 0) return [];
+
+    const products = await getProductsByIds(items.map(item => item.id));
+    const issues: StockIssue[] = [];
+
+    for (const item of items) {
+        const product = products.find(p => p.id === item.id);
+        if (!product) {
+            issues.push({productId: item.id, name: 'This item', requested: item.quantity, available: 0});
+            continue;
+        }
+        if (item.quantity > product.stock) {
+            issues.push({
+                productId: item.id,
+                name: product.name,
+                requested: item.quantity,
+                available: Math.max(0, product.stock),
+            });
+        }
+    }
+
+    return issues;
 }
 
 export async function deleteProduct(productId: string): Promise<void> {
@@ -241,6 +287,35 @@ export async function updateProduct(productId: string, productData: Omit<Product
         console.log(`Product ${productId} updated successfully.`);
     } catch (error) {
         console.error(`Error updating product ${productId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Atomically decrements a product's stock by `quantity`, floored at 0, using a Firebase
+ * transaction so concurrent purchases can't push stock negative or race each other.
+ *
+ * NOTE: this is called from the Stripe webhook (unauthenticated request context). If your
+ * Firebase Realtime Database rules require auth for writes under /products, this call will
+ * fail with a permission error - check your rules allow this path to be decremented by the
+ * webhook, or move this logic behind an authenticated server context (e.g. Firebase Admin SDK)
+ * if you need it to be fully tamper-proof.
+ */
+export async function decrementProductStock(productId: string, quantity: number): Promise<void> {
+    if (!db) {
+        throw new Error("Database not initialized. Cannot update stock.");
+    }
+    if (quantity <= 0) return;
+
+    const stockRef = ref(db, `products/${productId}/stock`);
+    try {
+        const result = await runTransaction(stockRef, (currentStock) => {
+            const current = typeof currentStock === 'number' ? currentStock : 0;
+            return Math.max(0, current - quantity);
+        });
+        console.log(`Stock for product ${productId} decremented by ${quantity}. New stock: ${result.snapshot.val()}.`);
+    } catch (error) {
+        console.error(`Error decrementing stock for product ${productId}:`, error);
         throw error;
     }
 }
@@ -474,6 +549,41 @@ export async function updateOrderPaymentStatus(orderId: string, paymentStatus: O
     }
 }
 
+/**
+ * Marks an order as paid and decrements stock for each purchased item, in one place.
+ * Idempotent: if the order is already marked 'paid' (e.g. Stripe sent both
+ * `checkout.session.completed` and `payment_intent.succeeded` for the same purchase),
+ * this is a no-op so stock is never decremented twice for the same order.
+ */
+export async function fulfillOrderPayment(orderId: string): Promise<void> {
+    const order = await getOrderById(orderId);
+    if (!order) {
+        console.error(`Cannot fulfill payment: order ${orderId} not found.`);
+        return;
+    }
+
+    if (order.paymentStatus === 'paid') {
+        console.log(`Order ${orderId} is already marked as paid; skipping duplicate stock decrement.`);
+        return;
+    }
+
+    await updateOrderPaymentStatus(orderId, 'paid');
+
+    const results = await Promise.allSettled(
+        order.items.map(item => decrementProductStock(item.id, item.quantity))
+    );
+
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            const item = order.items[index];
+            console.error(
+                `Order ${orderId} marked as paid, but failed to decrement stock for product ${item.id} (${item.name}). ` +
+                `Stock for this item may need to be corrected manually.`,
+                result.reason
+            );
+        }
+    });
+}
 
 export async function updateOrderStatus(orderId: string, status: Order['status']): Promise<void> {
     if (!db) {

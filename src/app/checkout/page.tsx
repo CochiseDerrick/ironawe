@@ -8,7 +8,7 @@ import Image from "next/image";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {Loader2, ShieldAlert} from "lucide-react";
+import {Loader2, ShieldAlert, AlertTriangle} from "lucide-react";
 
 import {Card, CardContent, CardHeader, CardTitle, CardFooter} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
@@ -34,12 +34,31 @@ const checkoutSchema = z.object({
 export type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
 export default function CheckoutPage() {
-  const {cartItems, cartTotal, shippingTotal, clearCart} = useCart();
+  const {cartItems, cartTotal, shippingTotal, clearCart, refreshStock} = useCart();
   const router = useRouter();
   const {toast} = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerDetails, setCustomerDetails] = useState<CheckoutFormValues | null>(null);
   const [processingStage, setProcessingStage] = useState<'idle' | 'creating-order' | 'initializing-payment' | 'redirecting'>('idle');
+  const [checkingStock, setCheckingStock] = useState(true);
+
+  // Re-validate stock the moment someone lands on checkout - the cart page already does this,
+  // but a customer can navigate here directly (e.g. a bookmarked/back-button visit), so this
+  // page can't assume the cart state it received is still accurate.
+  useEffect(() => {
+    let isMounted = true;
+    setCheckingStock(true);
+    refreshStock().finally(() => {
+      if (isMounted) setCheckingStock(false);
+    });
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const unavailableItems = cartItems.filter(item => item.quantity > item.stock);
+  const hasUnavailableItems = unavailableItems.length > 0;
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -55,6 +74,25 @@ export default function CheckoutPage() {
   const total = cartTotal + shippingTotal;
 
   const onSubmit = async (data: CheckoutFormValues) => {
+    // Final live check right before we try to charge anyone - the createOrder action below
+    // re-checks this too (and is the check that actually can't be bypassed), but this lets us
+    // give the customer an immediate, specific message instead of a generic order-creation error.
+    const finalIssues = await refreshStock();
+    if (finalIssues.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Availability Changed",
+        description: finalIssues
+          .map(issue =>
+            issue.available <= 0
+              ? `${issue.name} just sold out.`
+              : `${issue.name}: only ${issue.available} left.`
+          )
+          .join(' '),
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     setCustomerDetails(data);
     setProcessingStage('creating-order');
@@ -242,26 +280,51 @@ export default function CheckoutPage() {
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {hasUnavailableItems && (
+                  <Alert variant="destructive" role="alert">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Some items are no longer available as requested</AlertTitle>
+                    <AlertDescription>
+                      <div className="space-y-1">
+                        {unavailableItems.map(item => (
+                          <div key={item.id}>
+                            {item.stock <= 0
+                              ? `${item.name} has sold out.`
+                              : `${item.name}: only ${item.stock} left (you have ${item.quantity}).`}
+                          </div>
+                        ))}
+                        <Link href="/cart" className="underline font-medium">
+                          Return to your cart to fix this
+                        </Link>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <ul className="divide-y text-sm">
-                  {cartItems.map(item => (
-                    <li key={item.id} className="flex items-center py-2">
-                      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border">
-                        <Image
-                          src={item.images[0]}
-                          alt={item.name}
-                          width={64}
-                          height={64}
-                          className="h-full w-full object-cover object-center"
-                          unoptimized
-                        />
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-muted-foreground">Qty: {item.quantity}</p>
-                      </div>
-                      <p>£{(item.discountPrice || item.price).toFixed(2)}</p>
-                    </li>
-                  ))}
+                  {cartItems.map(item => {
+                    const exceedsStock = item.quantity > item.stock;
+                    return (
+                      <li key={item.id} className="flex items-center py-2">
+                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border">
+                          <Image
+                            src={item.images[0]}
+                            alt={item.name}
+                            width={64}
+                            height={64}
+                            className={`h-full w-full object-cover object-center ${exceedsStock ? 'grayscale opacity-60' : ''}`}
+                            unoptimized
+                          />
+                        </div>
+                        <div className="ml-4 flex-1">
+                          <p className="font-medium">{item.name}</p>
+                          <p className={exceedsStock ? 'text-destructive font-medium' : 'text-muted-foreground'}>
+                            Qty: {item.quantity}
+                          </p>
+                        </div>
+                        <p>£{(item.discountPrice || item.price).toFixed(2)}</p>
+                      </li>
+                    );
+                  })}
                 </ul>
                 <Separator />
                 <div className="space-y-2">
@@ -281,13 +344,19 @@ export default function CheckoutPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {processingStage === 'creating-order' && 'Creating Order...'}
-                  {processingStage === 'initializing-payment' && 'Setting up Payment...'}
-                  {processingStage === 'redirecting' && 'Redirecting to Payment...'}
-                  {processingStage === 'idle' && !isSubmitting && 'Proceed to Payment'}
-                  {processingStage === 'idle' && isSubmitting && 'Processing...'}
+                <Button
+                  type="submit"
+                  className="w-full bg-accent hover:bg-accent/90"
+                  disabled={isSubmitting || checkingStock || hasUnavailableItems}
+                >
+                  {(isSubmitting || checkingStock) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {checkingStock && 'Checking availability...'}
+                  {!checkingStock && processingStage === 'creating-order' && 'Creating Order...'}
+                  {!checkingStock && processingStage === 'initializing-payment' && 'Setting up Payment...'}
+                  {!checkingStock && processingStage === 'redirecting' && 'Redirecting to Payment...'}
+                  {!checkingStock && processingStage === 'idle' && !isSubmitting && hasUnavailableItems && 'Resolve availability issues to continue'}
+                  {!checkingStock && processingStage === 'idle' && !isSubmitting && !hasUnavailableItems && 'Proceed to Payment'}
+                  {!checkingStock && processingStage === 'idle' && isSubmitting && 'Processing...'}
                 </Button>
               </CardFooter>
             </Card>

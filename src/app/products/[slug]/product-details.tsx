@@ -28,13 +28,33 @@ export default function ProductDetails({product}: ProductDetailsProps) {
   const [selectedImage, setSelectedImage] = useState<string>(product.images[0]);
 
   const handleAddToCart = () => {
-    if (product) {
-      addToCart(product);
-      toast({
-        title: "Added to Cart",
-        description: `${product.name} has been added to your cart.`,
-        action: <CheckCircle className="text-primary" />,
-      });
+    if (!product) return;
+
+    const result = addToCart(product);
+
+    switch (result) {
+      case 'added':
+      case 'increased':
+        toast({
+          title: "Added to Cart",
+          description: `${product.name} has been added to your cart.`,
+          action: <CheckCircle className="text-primary" />,
+        });
+        break;
+      case 'max_reached':
+        toast({
+          variant: "destructive",
+          title: "Stock Limit Reached",
+          description: `You already have the maximum available quantity of ${product.name} (${product.stock}) in your cart.`,
+        });
+        break;
+      case 'out_of_stock':
+        toast({
+          variant: "destructive",
+          title: "Out of Stock",
+          description: `${product.name} is currently sold out.`,
+        });
+        break;
     }
   };
 
