@@ -1,7 +1,7 @@
 
 "use server";
 
-import {addOrder, addOrUpdateCustomer, Customer} from "@/lib/database";
+import {addOrder, addOrUpdateCustomer, checkStockAvailability, Customer} from "@/lib/database";
 import type {CheckoutFormValues} from "@/app/checkout/page";
 import type {CartItem} from "@/hooks/use-cart";
 
@@ -17,6 +17,22 @@ export async function createOrder(args: CreateOrderArgs): Promise<{success: bool
     const {customer, items, total, shipping, stripeSessionId} = args;
 
     try {
+        // Step 0: Re-validate stock against the live database. Client-side cart state can be
+        // stale (another customer may have bought the item, or the admin may have marked it
+        // sold out) or tampered with, so this is the authoritative check before we create an
+        // order or charge anyone.
+        const stockIssues = await checkStockAvailability(items.map(item => ({id: item.id, quantity: item.quantity})));
+        if (stockIssues.length > 0) {
+            const message = stockIssues
+                .map(issue =>
+                    issue.available <= 0
+                        ? `${issue.name} is now sold out.`
+                        : `${issue.name}: only ${issue.available} left (you requested ${issue.requested}).`
+                )
+                .join(' ');
+            return {success: false, error: message};
+        }
+
         // Step 1: Create or update the customer record.
         const {customerId} = await addOrUpdateCustomer(customer);
         console.log(`Customer record processed for: ${customerId}`);
