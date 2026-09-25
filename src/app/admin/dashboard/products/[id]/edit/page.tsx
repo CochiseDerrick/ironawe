@@ -64,7 +64,7 @@ export default function EditProductPage() {
                     setPrice(product.price.toString());
                     setDiscountPrice(product.discountPrice?.toString() || "");
                     setShippingCost(product.shippingCost?.toString() || "");
-                    setStock(product.stock.toString());
+                    setStock((product.stock ?? 0).toString());
                     setPromoEligible(product.promoEligible || false);
                     setCategory(product.category || "");
                     const existingImages: UploadedImage[] = product.images.map(url => ({

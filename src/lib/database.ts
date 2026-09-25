@@ -110,7 +110,8 @@ export async function getProducts(): Promise<Product[]> {
             return Object.keys(productsObject).map(key => ({
                 ...productsObject[key],
                 id: key,
-                category: productsObject[key].category || 'uncategorized' // Handle legacy products without category
+                category: productsObject[key].category || 'uncategorized', // Handle legacy products without category
+                stock: typeof productsObject[key].stock === 'number' ? productsObject[key].stock : 0 // Handle legacy products without stock
             }));
         } else {
             console.log("No products data available, returning empty array.");
@@ -135,7 +136,8 @@ export async function getProductById(id: string): Promise<Product | null> {
             return {
                 ...productData,
                 id: id,
-                category: productData.category || 'uncategorized' // Handle legacy products without category
+                category: productData.category || 'uncategorized', // Handle legacy products without category
+                stock: typeof productData.stock === 'number' ? productData.stock : 0 // Handle legacy products without stock
             };
         } else {
             return null;

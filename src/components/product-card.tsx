@@ -11,18 +11,29 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const isOutOfStock = product.stock <= 0;
+
   return (
     <Card className="overflow-hidden group transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
       <Link href={`/products/${product.slug}`} aria-label={`View details for ${product.name}`}>
-        <div className="overflow-hidden">
+        <div className="overflow-hidden relative">
           <Image
             src={product.images[0]}
             alt={product.description}
             width={600}
             height={400}
-            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+            className={`w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300 ${isOutOfStock ? 'grayscale opacity-60' : ''}`}
             unoptimized
           />
+          {isOutOfStock && (
+            <Badge
+              variant="destructive"
+              className="absolute top-2 right-2"
+              aria-label="This product is sold out"
+            >
+              Sold Out
+            </Badge>
+          )}
         </div>
         <CardContent className="p-4">
           <h3 className="text-lg font-headline font-bold truncate">{product.name}</h3>
