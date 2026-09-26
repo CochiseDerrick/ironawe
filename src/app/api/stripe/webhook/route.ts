@@ -1,8 +1,9 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {headers} from 'next/headers';
 import Stripe from 'stripe';
-import {getOrderByStripeSessionId, updateOrderPaymentStatus, fulfillOrderPayment} from '@/lib/database';
+import {getOrderByStripeSessionIdAdmin, updateOrderPaymentStatusAdmin, fulfillOrderPaymentAdmin} from '@/lib/database-admin';
 import {updateOrderStatus} from '@/actions/update-order-status';
+import {logWebhookEvent} from '@/actions/log-webhook-event';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -33,6 +34,16 @@ export async function POST(request: NextRequest) {
         console.log('Received Stripe webhook:', {
             type: event.type,
             id: event.id,
+        });
+
+        // Fire-and-forget audit log of every webhook event received. This never throws (it
+        // logs its own failures) so a logging problem can never block payment processing.
+        void logWebhookEvent({
+            source: 'stripe',
+            event_type: event.type,
+            status: 'received',
+            processed: false,
+            raw_payload: event,
         });
 
         // Handle the event
@@ -72,7 +83,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     if (!session.id) return;
 
-    const order = await getOrderByStripeSessionId(session.id);
+    const order = await getOrderByStripeSessionIdAdmin(session.id);
     if (!order) {
         console.error('Order not found for Stripe session:', session.id);
         return;
@@ -80,7 +91,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     // Mark the order as paid and decrement stock for the purchased items. This is idempotent,
     // so if `payment_intent.succeeded` also fires for this order, stock won't be double-decremented.
-    await fulfillOrderPayment(order.id);
+    await fulfillOrderPaymentAdmin(order.id);
 
     console.log(`Order ${order.id} payment confirmed via Stripe session ${session.id}`);
 }
@@ -90,7 +101,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
     // If we have order metadata, fulfill the order (mark paid + decrement stock, idempotently).
     if (paymentIntent.metadata?.orderId) {
-        await fulfillOrderPayment(paymentIntent.metadata.orderId);
+        await fulfillOrderPaymentAdmin(paymentIntent.metadata.orderId);
         console.log(`Order ${paymentIntent.metadata.orderId} payment confirmed via payment intent ${paymentIntent.id}`);
     }
 }
@@ -100,7 +111,7 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 
     // If we have order metadata, update the order
     if (paymentIntent.metadata?.orderId) {
-        await updateOrderPaymentStatus(paymentIntent.metadata.orderId, 'failed');
+        await updateOrderPaymentStatusAdmin(paymentIntent.metadata.orderId, 'failed');
 
         // Also update order status to cancelled
         const orderResult = await updateOrderStatus(paymentIntent.metadata.orderId, 'Cancelled');
@@ -117,14 +128,14 @@ async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
 
     if (!session.id) return;
 
-    const order = await getOrderByStripeSessionId(session.id);
+    const order = await getOrderByStripeSessionIdAdmin(session.id);
     if (!order) {
         console.error('Order not found for expired Stripe session:', session.id);
         return;
     }
 
     // Update payment status to cancelled
-    await updateOrderPaymentStatus(order.id, 'cancelled');
+    await updateOrderPaymentStatusAdmin(order.id, 'cancelled');
 
     // Also update order status to cancelled
     const orderResult = await updateOrderStatus(order.id, 'Cancelled');

@@ -1,7 +1,8 @@
 
 "use server";
 
-import {addOrder, addOrUpdateCustomer, checkStockAvailability, Customer} from "@/lib/database";
+import {checkStockAvailability} from "@/lib/database";
+import {addOrderAdmin, addOrUpdateCustomerAdmin} from "@/lib/database-admin";
 import type {CheckoutFormValues} from "@/app/checkout/page";
 import type {CartItem} from "@/hooks/use-cart";
 
@@ -33,8 +34,10 @@ export async function createOrder(args: CreateOrderArgs): Promise<{success: bool
             return {success: false, error: message};
         }
 
-        // Step 1: Create or update the customer record.
-        const {customerId} = await addOrUpdateCustomer(customer);
+        // Step 1: Create or update the customer record. Uses the Admin SDK because this
+        // action runs unauthenticated (it's triggered by an anonymous shopper) and
+        // /customers is locked to the admin's own account in the security rules.
+        const {customerId} = await addOrUpdateCustomerAdmin(customer);
         console.log(`Customer record processed for: ${customerId}`);
 
         // Step 2: Create the order and link it to the customer.
@@ -49,7 +52,7 @@ export async function createOrder(args: CreateOrderArgs): Promise<{success: bool
         };
 
         // Step 3: This function now also updates the customer record with the order details.
-        const finalOrderId = await addOrder(orderData, customer);
+        const finalOrderId = await addOrderAdmin(orderData, customer);
         console.log(`Order ${finalOrderId} created and linked to customer ${customerId}`);
 
         return {success: true, orderId: finalOrderId};

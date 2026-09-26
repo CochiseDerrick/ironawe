@@ -10,5 +10,8 @@
       "region": "us-central1"
     },
     "webFrameworks": true
+  },
+  "database": {
+    "rules": "database.rules.json"
   }
 }

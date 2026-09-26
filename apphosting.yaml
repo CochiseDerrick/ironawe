@@ -5,3 +5,64 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+# Environment variables and secrets for production. Values here are safe to commit -
+# secrets only ever contain a *reference* to Cloud Secret Manager, never the value itself.
+env:
+  # --- Public Firebase web config ---
+  # These are exposed to the browser anyway (NEXT_PUBLIC_ prefix), so plain values are
+  # fine here rather than secrets. Firebase enforces access via Security Rules / domain
+  # allowlisting, not by keeping these values hidden.
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: netflix-clone-6c7e5
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: netflix-clone-6c7e5.firebaseapp.com
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: netflix-clone-6c7e5.firebasestorage.app
+    availability: [BUILD, RUNTIME]
+  # TODO: fill in from Firebase Console -> Realtime Database (shown at the top of the page)
+  - variable: NEXT_PUBLIC_FIREBASE_DATABASE_URL
+    value: "https://netflix-clone-6c7e5-default-rtdb.firebaseio.com"
+    availability: [BUILD, RUNTIME]
+  # TODO: set to your real production domain once you have one
+  - variable: NEXT_PUBLIC_BASE_URL
+    value: "https://your-production-domain.com"
+    availability: [BUILD, RUNTIME]
+
+  # --- Secrets ---
+  # Create each of these with: firebase apphosting:secrets:set <secret-name>
+  # (it will prompt for the value and offer to grant App Hosting access automatically)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: NEXT_PUBLIC_FIREBASE_API_KEY
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    secret: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    secret: NEXT_PUBLIC_FIREBASE_APP_ID
+    availability: [BUILD, RUNTIME]
+
+  # Firebase Admin SDK - server-only, needed for checkout/webhook/order fulfillment.
+  - variable: FIREBASE_CLIENT_EMAIL
+    secret: FIREBASE_CLIENT_EMAIL
+  - variable: FIREBASE_PRIVATE_KEY
+    secret: FIREBASE_PRIVATE_KEY
+
+  # Stripe
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+  - variable: STRIPE_PUBLISHABLE_KEY
+    secret: STRIPE_PUBLISHABLE_KEY
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+
+  # Cloudinary
+  - variable: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    secret: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    availability: [BUILD, RUNTIME]
+  - variable: CLOUDINARY_API_KEY
+    secret: CLOUDINARY_API_KEY
+  - variable: CLOUDINARY_API_SECRET
+    secret: CLOUDINARY_API_SECRET

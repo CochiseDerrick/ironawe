@@ -14,8 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings, getProducts, Product } from "@/lib/database";
-import { updateTheme, updateCategoryOrder } from "@/actions/update-theme";
+import { getSettings, getProducts, updateSettings, Product } from "@/lib/database";
 import { Loader2, Check, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -126,18 +125,15 @@ export default function AppearancePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-        const themeResult = await updateTheme(selectedTheme);
-        const categoryResult = await updateCategoryOrder(categoryOrder);
-
-        if (themeResult.success && categoryResult.success) {
-            setSettings(prev => ({...prev, defaultTheme: selectedTheme, categoryOrder}));
-            toast({
-                title: "Appearance Updated",
-                description: "Your appearance settings have been saved.",
-            });
-        } else {
-            throw new Error(themeResult.error || categoryResult.error || "An unknown error occurred.");
-        }
+        // Called directly from the browser (not via a Server Action) - the admin is already
+        // authenticated with Firebase Auth here, so this can go straight through the
+        // client SDK under the admin-only /settings write rule.
+        await updateSettings({defaultTheme: selectedTheme, categoryOrder});
+        setSettings(prev => ({...prev, defaultTheme: selectedTheme, categoryOrder}));
+        toast({
+            title: "Appearance Updated",
+            description: "Your appearance settings have been saved.",
+        });
     } catch (error) {
          toast({
             variant: "destructive",
