@@ -1,7 +1,6 @@
 
 import {db} from './firebase';
-import {ref, get, set, child, remove, push, update, query, orderByChild, equalTo, runTransaction} from 'firebase/database';
-import type {CheckoutFormValues} from '@/app/checkout/page';
+import {ref, get, set, child, remove, push, update} from 'firebase/database';
 import type {CartItem} from '@/hooks/use-cart';
 
 export type Product = {
@@ -291,131 +290,13 @@ export async function updateProduct(productId: string, productData: Omit<Product
     }
 }
 
-/**
- * Atomically decrements a product's stock by `quantity`, floored at 0, using a Firebase
- * transaction so concurrent purchases can't push stock negative or race each other.
- *
- * NOTE: this is called from the Stripe webhook (unauthenticated request context). If your
- * Firebase Realtime Database rules require auth for writes under /products, this call will
- * fail with a permission error - check your rules allow this path to be decremented by the
- * webhook, or move this logic behind an authenticated server context (e.g. Firebase Admin SDK)
- * if you need it to be fully tamper-proof.
- */
-export async function decrementProductStock(productId: string, quantity: number): Promise<void> {
-    if (!db) {
-        throw new Error("Database not initialized. Cannot update stock.");
-    }
-    if (quantity <= 0) return;
-
-    const stockRef = ref(db, `products/${productId}/stock`);
-    try {
-        const result = await runTransaction(stockRef, (currentStock) => {
-            const current = typeof currentStock === 'number' ? currentStock : 0;
-            return Math.max(0, current - quantity);
-        });
-        console.log(`Stock for product ${productId} decremented by ${quantity}. New stock: ${result.snapshot.val()}.`);
-    } catch (error) {
-        console.error(`Error decrementing stock for product ${productId}:`, error);
-        throw error;
-    }
-}
-
-
-export async function addOrUpdateCustomer(
-    customerData: CheckoutFormValues
-): Promise<{customerId: string, isNewCustomer: boolean}> {
-    if (!db) throw new Error("Database not initialized");
-
-    // Fetch all customers and find by email in the application code
-    const customers = await getCustomers();
-    const existingCustomer = customers.find(c => c.email === customerData.email);
-
-    if (existingCustomer) {
-        // Found an existing customer, return their ID
-        return {customerId: existingCustomer.id, isNewCustomer: false};
-    } else {
-        // No existing customer, create a new one
-        const customersRef = ref(db, 'customers');
-        const newCustomerRef = push(customersRef);
-        if (!newCustomerRef.key) {
-            throw new Error("Failed to generate a new customer key.");
-        }
-
-        // Return a key for a customer that doesn't exist yet. `addOrder` will create them.
-        return {customerId: newCustomerRef.key, isNewCustomer: true};
-    }
-}
-
-interface OrderCreationData {
-    customerId: string;
-    customerName: string;
-    items: CartItem[];
-    total: number;
-    shipping: number;
-    stripeSessionId?: string;
-    paymentStatus?: 'pending' | 'paid' | 'failed' | 'cancelled';
-}
-
-export async function addOrder(
-    orderData: OrderCreationData,
-    customerDetails: CheckoutFormValues
-): Promise<string> {
-    if (!db) throw new Error("Database not initialized");
-
-    const ordersRef = ref(db, 'orders');
-    const newOrderRef = push(ordersRef);
-    const orderId = newOrderRef.key!;
-    const now = new Date().toISOString();
-
-    const {fullName, ...customerInfoForOrder} = customerDetails;
-
-    const baseOrder = {
-        customerId: orderData.customerId,
-        customerName: orderData.customerName,
-        items: orderData.items,
-        total: orderData.total,
-        shipping: orderData.shipping,
-        status: 'Pending' as const,
-        createdAt: now,
-        paymentStatus: orderData.paymentStatus || 'pending' as const,
-        customer: customerInfoForOrder,
-    };
-
-    // Only include stripeSessionId if it's defined
-    const newOrder = orderData.stripeSessionId
-        ? {...baseOrder, stripeSessionId: orderData.stripeSessionId}
-        : baseOrder;
-
-    await set(newOrderRef, newOrder);
-
-    const customerRef = ref(db, `customers/${orderData.customerId}`);
-    const customerSnapshot = await get(customerRef);
-
-    if (customerSnapshot.exists()) {
-        // This is a returning customer, update their record
-        const customer = customerSnapshot.val();
-
-        const updates: {[key: string]: any} = {};
-        updates['orderIds'] = [...(customer.orderIds || []), orderId];
-        updates['totalSpent'] = (customer.totalSpent || 0) + orderData.total;
-        updates['lastPurchase'] = now;
-
-        await update(customerRef, updates);
-    } else {
-        // This is a new customer, create their full record
-        const newCustomerRecord: Omit<Customer, 'id'> = {
-            ...customerDetails,
-            orderIds: [orderId],
-            totalSpent: orderData.total,
-            firstPurchase: now,
-            lastPurchase: now,
-        };
-        await set(customerRef, newCustomerRecord);
-    }
-
-    return orderId;
-}
-
+// NOTE: customer/order creation (addOrUpdateCustomer/addOrder), stock decrementing
+// (decrementProductStock), and order payment/status mutation (updateOrderPaymentStatus,
+// fulfillOrderPayment, updateOrderStatus, getOrderByStripeSessionId) all now live in
+// `src/lib/database-admin.ts`. Those code paths only ever run from Server Actions/route
+// handlers on behalf of anonymous shoppers or the Stripe webhook - there's no browser-auth
+// admin session to rely on there, so they must use the Firebase Admin SDK rather than this
+// client SDK, which is subject to the same Realtime Database security rules as the browser.
 
 export async function getCustomers(): Promise<Customer[]> {
     if (!db) {
@@ -504,97 +385,6 @@ export async function getOrderById(id: string): Promise<Order | null> {
         }
     } catch (error) {
         console.error(`Error fetching order by ID ${id}:`, error);
-        throw error;
-    }
-}
-
-export async function getOrderByStripeSessionId(stripeSessionId: string): Promise<Order | null> {
-    if (!db) {
-        console.warn("Database not initialized. Cannot fetch order by Stripe session ID.");
-        return null;
-    }
-
-    try {
-        const ordersRef = ref(db, 'orders');
-        const ordersQuery = query(ordersRef, orderByChild('stripeSessionId'), equalTo(stripeSessionId));
-        const snapshot = await get(ordersQuery);
-
-        if (snapshot.exists()) {
-            const orders = snapshot.val();
-            const orderId = Object.keys(orders)[0]; // Get the first (and should be only) matching order
-            return {
-                ...orders[orderId],
-                id: orderId,
-            };
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error(`Error fetching order by Stripe session ID ${stripeSessionId}:`, error);
-        throw error;
-    }
-}
-
-export async function updateOrderPaymentStatus(orderId: string, paymentStatus: Order['paymentStatus']): Promise<void> {
-    if (!db) {
-        throw new Error("Database not initialized. Cannot update order payment status.");
-    }
-    try {
-        const orderRef = ref(db, `orders/${orderId}`);
-        await update(orderRef, {paymentStatus: paymentStatus});
-        console.log(`Order ${orderId} payment status updated to ${paymentStatus}.`);
-    } catch (error) {
-        console.error(`Error updating payment status for order ${orderId}:`, error);
-        throw error;
-    }
-}
-
-/**
- * Marks an order as paid and decrements stock for each purchased item, in one place.
- * Idempotent: if the order is already marked 'paid' (e.g. Stripe sent both
- * `checkout.session.completed` and `payment_intent.succeeded` for the same purchase),
- * this is a no-op so stock is never decremented twice for the same order.
- */
-export async function fulfillOrderPayment(orderId: string): Promise<void> {
-    const order = await getOrderById(orderId);
-    if (!order) {
-        console.error(`Cannot fulfill payment: order ${orderId} not found.`);
-        return;
-    }
-
-    if (order.paymentStatus === 'paid') {
-        console.log(`Order ${orderId} is already marked as paid; skipping duplicate stock decrement.`);
-        return;
-    }
-
-    await updateOrderPaymentStatus(orderId, 'paid');
-
-    const results = await Promise.allSettled(
-        order.items.map(item => decrementProductStock(item.id, item.quantity))
-    );
-
-    results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-            const item = order.items[index];
-            console.error(
-                `Order ${orderId} marked as paid, but failed to decrement stock for product ${item.id} (${item.name}). ` +
-                `Stock for this item may need to be corrected manually.`,
-                result.reason
-            );
-        }
-    });
-}
-
-export async function updateOrderStatus(orderId: string, status: Order['status']): Promise<void> {
-    if (!db) {
-        throw new Error("Database not initialized. Cannot update order status.");
-    }
-    try {
-        const orderRef = ref(db, `orders/${orderId}`);
-        await update(orderRef, {status: status});
-        console.log(`Order ${orderId} status updated to ${status}.`);
-    } catch (error) {
-        console.error(`Error updating status for order ${orderId}:`, error);
         throw error;
     }
 }

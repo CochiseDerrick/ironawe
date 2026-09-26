@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "products": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
+    },
+    "reviews": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
+    },
+    "settings": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
+    },
+    "customers": {
+      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
+    },
+    "orders": {
+      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
+      ".indexOn": ["stripeSessionId"]
+    },
+    "webhook_events": {
+      ".read": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'jade.ironawe@gmail.com'"
+    }
+  }
+}

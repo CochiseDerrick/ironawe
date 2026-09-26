@@ -6,12 +6,12 @@ import {Button} from "@/components/ui/button";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
 import {CheckCircle, AlertCircle, Loader2} from "lucide-react";
-import {getOrderById, getOrderByStripeSessionId} from "@/lib/database";
+import {getOrderConfirmation, type OrderConfirmation} from "@/actions/get-order-confirmation";
 import {useCart} from "@/hooks/use-cart";
 
 interface PaymentVerificationState {
   status: 'loading' | 'verified' | 'pending' | 'failed';
-  orderData?: any;
+  orderData?: OrderConfirmation;
   error?: string;
 }
 
@@ -40,22 +40,23 @@ export default function CheckoutSuccessPage() {
           return;
         }
 
-        // If we have session ID but no order ID, try to find the order by session ID
-        let order;
-        if (orderId) {
-          order = await getOrderById(orderId);
-        } else {
-          // Try to find order by Stripe session ID
-          order = await getOrderByStripeSessionId(stripeSessionId);
-        }
+        // Look up the order via a Server Action backed by the Firebase Admin SDK - orders
+        // are locked to the admin's own account in the security rules, so an anonymous
+        // shopper's browser can't read this directly.
+        const result = await getOrderConfirmation({
+          orderId: orderId || undefined,
+          stripeSessionId: orderId ? undefined : stripeSessionId,
+        });
 
-        if (!order) {
+        if (!result.success || !result.order) {
           setVerificationState({
             status: 'failed',
-            error: 'Order not found'
+            error: result.error || 'Order not found'
           });
           return;
         }
+
+        const order = result.order;
 
         // Clear localStorage after successful verification
         localStorage.removeItem('stripe_session_id');
@@ -177,7 +178,7 @@ export default function CheckoutSuccessPage() {
           {verificationState.orderData && (
             <div className="bg-muted p-3 rounded-md text-sm">
               <p><strong>Order Total:</strong> £{verificationState.orderData.total.toFixed(2)}</p>
-              <p><strong>Items:</strong> {verificationState.orderData.items.length} item{verificationState.orderData.items.length > 1 ? 's' : ''}</p>
+              <p><strong>Items:</strong> {verificationState.orderData.itemCount} item{verificationState.orderData.itemCount > 1 ? 's' : ''}</p>
             </div>
           )}
           <Button asChild className="mt-6">
